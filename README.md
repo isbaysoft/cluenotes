@@ -4,6 +4,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-Strict%20Mode-blue?style=flat&logo=typescript&logoColor=white)
 ![Vue 3](https://img.shields.io/badge/Vue.js-3.x-4fc08d?style=flat&logo=vuedotjs&logoColor=white)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/da1c3500-ab74-4f3e-9ae3-17975bea9166/deploy-status)](https://app.netlify.com/sites/cluenotes/deploys)
+![License](https://img.shields.io/github/license/isbaysoft/cluenotes?color=blue)
 
 Clue Notes is a mobile-friendly companion app for Clue/Cluedo games.
 It helps you track cards, log turns, and keep deduction notes during play.
