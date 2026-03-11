@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "lib": ["esnext", "dom"],
+    "moduleResolution": "bundler",
+    "types": ["vite/client", "node", "pinia-plugin-persistedstate"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@e2e/*": ["e2e/*"]
+    },
+    "allowJs": false,
+    "checkJs": false,
+    "strict": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "useDefineForClassFields": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "vite.config.*",
+    "e2e/**/*"
+  ],
+  "exclude": ["node_modules", "dist", "src/components/shared/PickCard copy.vue"]
+}

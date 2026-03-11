@@ -1,0 +1,9 @@
+services:
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.58.2-jammy
+    working_dir: /work
+    ipc: host
+    volumes:
+      - .:/work
+    environment:
+      - CI=true

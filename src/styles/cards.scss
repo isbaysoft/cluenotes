@@ -1,0 +1,38 @@
+@use '@/styles/variables' as *;
+
+.card-chip {
+  background: #f5f5f5;
+  border: 2px solid #e0e0e0;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-weight: 700;
+  color: #666;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+
+  &.is-selected {
+    background: #e3f2fd;
+    border-color: $blue-bg;
+    color: $blue-dark;
+    transform: scale(0.95);
+    opacity: 0.5;
+    text-decoration: line-through;
+  }
+
+  &.showed {
+    border: none;
+
+    @include each-card-color using ($type, $color) {
+      color: $white;
+      background: $color;
+    }
+  }
+
+  @include each-card-color using ($type, $color) {
+    color: $color;
+  }
+}

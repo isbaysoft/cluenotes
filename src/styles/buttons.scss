@@ -1,0 +1,6 @@
+@use 'variables' as *;
+
+// ???
+.drop-shadow {
+  filter: drop-shadow(0 10px 0 rgba(0, 0, 0, 0.2));
+}
