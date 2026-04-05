@@ -31,7 +31,7 @@
       </div>
 
       <footer class="site-footer">
-        <p>© {{ new Date().getFullYear() }} Unofficial Clue Notes</p>
+        <p>© {{ new Date().getFullYear() }} Unofficial Clue Notes • v{{ appVersion }}</p>
         <nav>
           <RouterLink data-testid="terms-link" to="/terms">Terms & Privacy</RouterLink>
         </nav>
@@ -46,9 +46,11 @@ import { useSettingsStore } from '@/stores/settingsStore'
 import LogoArea from '@/components/shared/LogoArea.vue'
 import Button from '@/components/shared/Button.vue'
 import { modalService } from '@/services/modal/service'
+import packageJson from '../../package.json'
 
 const router = useRouter()
 const settingsStore = useSettingsStore()
+const appVersion = packageJson.version
 const resumeGame = () => router.push({ name: 'game-play' })
 
 const initNewGame = (force: boolean) => {
@@ -76,6 +78,8 @@ const askAboutNewGameModal = async () => {
 <style lang="scss" scoped>
 .application-view {
   container-type: size;
+  padding-top: env(safe-area-inset-top, 0);
+  box-sizing: border-box;
 
   .site-footer {
     margin-top: auto;
@@ -201,11 +205,16 @@ const askAboutNewGameModal = async () => {
 }
 
 .application-view.has-active-game {
+  justify-content: center;
+
   .logo-img {
+    flex: 0 0 auto;
+    padding-top: clamp(0.6rem, 2.5vh, 1rem);
+
     img {
-      width: 60%;
-      max-width: 16rem;
-      margin: $padding-sm 0;
+      width: clamp(9.5rem, 40vw, 12rem);
+      max-height: min(26vh, 12rem);
+      margin: 0.2rem 0 0.15rem;
     }
   }
 
@@ -227,6 +236,25 @@ const askAboutNewGameModal = async () => {
 
   .site-footer {
     padding-top: 8px;
+  }
+}
+
+@media (max-width: 699px) {
+  .application-view.has-active-game {
+    .logo-img {
+      padding-top: clamp(0.5rem, 2vh, 0.85rem);
+
+      img {
+        width: clamp(9rem, 38vw, 11.5rem);
+        max-height: min(24vh, 11rem);
+        margin: 0.1rem 0;
+      }
+    }
+
+    .menu-stack {
+      gap: 0.6rem;
+      padding-top: 0.1rem;
+    }
   }
 }
 

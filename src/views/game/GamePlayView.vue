@@ -65,9 +65,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, watch } from 'vue'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useNotebookStore } from '@/stores/notebookStore'
+import { CellStatus } from '@/models/cellStatus'
 import { modalService } from '@/services/modal/service'
 import { toastService } from '@/services/toast/service'
 import Flyout from '@/components/shared/Flyout.vue'
@@ -93,6 +94,9 @@ type Eye = {
 const eyes = ref<Eye[]>([])
 const spawnInterval = ref<ReturnType<typeof setInterval> | null>(null)
 const isHolding = ref(false)
+let hasMatrixSnapshot = false
+let prevKnownHasFacts = new Set<string>()
+const announcedHasFacts = new Set<string>()
 
 let hidingTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -163,6 +167,71 @@ const requestMotionPermission = async () => {
     window.addEventListener('deviceorientation', handleOrientation)
   }
 }
+
+const collectKnownHasFacts = () => {
+  const facts = new Set<string>()
+  settingsStore.players.forEach((player) => {
+    if (player.id === settingsStore.you.id) return
+    const row = notebookStore.matrix[player.id]
+    if (!row) return
+
+    Object.entries(row).forEach(([cardId, status]) => {
+      if (status === CellStatus.HAS) {
+        facts.add(`${player.id}_${cardId}`)
+      }
+    })
+  })
+  return facts
+}
+
+const notifyNewDeductions = (newFacts: string[]) => {
+  if (!newFacts.length) return
+
+  const firstFact = newFacts[0]
+  if (!firstFact) return
+
+  const [playerId, cardId] = firstFact.split('_')
+  if (!playerId || !cardId) return
+
+  const player = settingsStore.findPlayerById(playerId)
+  const card = notebookStore.findCardById(cardId)
+  if (!player || !card) return
+
+  const extraFactsCount = newFacts.length - 1
+  const suffix = extraFactsCount > 0 ? ` (+${extraFactsCount} more)` : ''
+
+  toastService.add({
+    type: 'info',
+    title: 'New deduction',
+    message: `We learned that ${player.name} holds ${card.name}${suffix}.`,
+  })
+}
+
+watch(
+  () => notebookStore.matrix,
+  () => {
+    const currentKnownHasFacts = collectKnownHasFacts()
+
+    if (!hasMatrixSnapshot) {
+      hasMatrixSnapshot = true
+      prevKnownHasFacts = new Set(currentKnownHasFacts)
+      currentKnownHasFacts.forEach((factKey) => announcedHasFacts.add(factKey))
+      return
+    }
+
+    const newlyDiscoveredFacts = Array.from(currentKnownHasFacts).filter((factKey) => {
+      return !prevKnownHasFacts.has(factKey) && !announcedHasFacts.has(factKey)
+    })
+
+    if (newlyDiscoveredFacts.length > 0) {
+      newlyDiscoveredFacts.forEach((factKey) => announcedHasFacts.add(factKey))
+      notifyNewDeductions(newlyDiscoveredFacts)
+    }
+
+    prevKnownHasFacts = currentKnownHasFacts
+  },
+  { deep: true },
+)
 
 onUnmounted(() => {
   window.removeEventListener('deviceorientation', handleOrientation)

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { CellStatus } from '@/models/cellStatus'
+import { CARD_TYPES } from '@/models/card'
 import { useSettingsStore } from '@/stores/settingsStore'
 import Cards from '@/data/cards'
 
@@ -46,6 +47,57 @@ export const useNotebookStore = defineStore(
       const getNotebookStatus = (playerId: string, cardId: string): CellStatus => {
         return ensureRow(playerId)[cardId] ?? CellStatus.UNKNOWN
       }
+      const applyEnvelopeCategoryDeduction = (): boolean => {
+        let changed = false
+
+        CARD_TYPES.forEach((cardType) => {
+          const cardsInCategory = Cards.filter((card) => card.type === cardType)
+          const cardIdsWithKnownOwner = cardsInCategory
+            .filter((card) => {
+              return settingsStore.players.some((player) => {
+                return getNotebookStatus(player.id, card.id) === CellStatus.HAS
+              })
+            })
+            .map((card) => card.id)
+
+          if (cardIdsWithKnownOwner.length !== cardsInCategory.length - 1) return
+
+          const envelopeCard = cardsInCategory.find((card) => !cardIdsWithKnownOwner.includes(card.id))
+          if (!envelopeCard) return
+
+          settingsStore.players.forEach((player) => {
+            const currentStatus = getNotebookStatus(player.id, envelopeCard.id)
+            if (currentStatus === CellStatus.HAS || currentStatus === CellStatus.HAS_NOT) return
+
+            setNotebookStatus(player.id, envelopeCard.id, CellStatus.HAS_NOT)
+            changed = true
+          })
+        })
+
+        return changed
+      }
+      const markSkippedPlayersAsHasNot = (
+        askedByPlayerId: string,
+        disprovedByPlayerId: string,
+        cardIds: string[],
+      ) => {
+        const askedByPlayerIdx = settingsStore.getPlayersIndex(askedByPlayerId)
+        if (askedByPlayerIdx < 0) return
+
+        for (let i = 1; i < settingsStore.players.length; i++) {
+          const nextPlayerIdx = (askedByPlayerIdx + i) % settingsStore.players.length
+          const nextPlayer = settingsStore.players[nextPlayerIdx]
+          if (!nextPlayer) continue
+
+          if (nextPlayer.id === disprovedByPlayerId) break
+
+          if (nextPlayer.id !== settingsStore.you.id) {
+            cardIds.forEach((cardId) => {
+              setNotebookStatus(nextPlayer.id, cardId, CellStatus.HAS_NOT)
+            })
+          }
+        }
+      }
       const myNotebook = ensureRow(settingsStore.you.id)
       // 1 AXIOM: My Cards
       Cards.forEach((card) => {
@@ -84,8 +136,14 @@ export const useNotebookStore = defineStore(
 
       // 2. PROCESSING HISTORY
       settingsStore.suggestions.forEach((s) => {
+        const cardIds = [s.suspect.id, s.weapon.id, s.room.id]
+
         // CASE A: I asked (I'm seeing the cards)
         if (s.askedByPlayerId === settingsStore.you.id) {
+          if (s.disprovedByPlayerId) {
+            markSkippedPlayersAsHasNot(s.askedByPlayerId, s.disprovedByPlayerId, cardIds)
+          }
+
           if (s.disprovedByPlayerId && s.shownCardId) {
             setNotebookStatus(s.disprovedByPlayerId, s.shownCardId, CellStatus.HAS)
 
@@ -110,37 +168,26 @@ export const useNotebookStore = defineStore(
         else {
           if (s.disprovedByPlayerId) {
             const disprovedByPlayerId = s.disprovedByPlayerId
-            const cardIds = [s.suspect.id, s.weapon.id, s.room.id]
 
             // Setting MAYBE for the disproving player
             if (disprovedByPlayerId !== settingsStore.you.id) {
-              cardIds.forEach((cardId) => {
-                // Safety check: Don't overwrite if we essentially know it's HAS_NOT
-                if (getNotebookStatus(disprovedByPlayerId, cardId) === CellStatus.UNKNOWN) {
-                  setNotebookStatus(disprovedByPlayerId, cardId, CellStatus.MAYBE)
-                }
+              const disproverAlreadyHasOneOfCards = cardIds.some((cardId) => {
+                return getNotebookStatus(disprovedByPlayerId, cardId) === CellStatus.HAS
               })
-            }
 
-            // Logic of "skipped players" (they didn't respond -> they definitely don't have it)
-            const askedByPlayerIdx = settingsStore.getPlayersIndex(s.askedByPlayerId)
-
-            // Loop from the asker to the disprover
-            for (let i = 1; i < settingsStore.players.length; i++) {
-              const nextPlayerIdx = (askedByPlayerIdx + i) % settingsStore.players.length
-              const nextPlayer = settingsStore.players[nextPlayerIdx]
-              if (!nextPlayer) continue
-
-              // Stop when we reached the disproving player
-              if (nextPlayer.id === disprovedByPlayerId) break
-
-              // All between players marked as HAS_NOT
-              if (nextPlayer.id !== settingsStore.you.id) {
+              // If we already know he has one card from this trio,
+              // this suggestion gives no new information about the other two.
+              if (!disproverAlreadyHasOneOfCards) {
                 cardIds.forEach((cardId) => {
-                  setNotebookStatus(nextPlayer.id, cardId, CellStatus.HAS_NOT)
+                  if (getNotebookStatus(disprovedByPlayerId, cardId) === CellStatus.UNKNOWN) {
+                    setNotebookStatus(disprovedByPlayerId, cardId, CellStatus.MAYBE)
+                  }
                 })
               }
             }
+
+            // Logic of "skipped players" (they didn't respond -> they definitely don't have it)
+            markSkippedPlayersAsHasNot(s.askedByPlayerId, disprovedByPlayerId, cardIds)
           } else {
             // Nobody disproved -> No one has these cards (except possibly the asker)
             settingsStore.players.forEach((player) => {
@@ -166,50 +213,65 @@ export const useNotebookStore = defineStore(
         }
       })
 
-      // 3. DEDUCTION LEVEL
-      settingsStore.players.forEach((player) => {
-        // We collect all impossible cards for this player
-        const impossibleCardsIds = Object.entries(ensureRow(player.id))
-          .filter(([_, status]) => status === CellStatus.HAS_NOT)
-          .map(([cardId, _]) => cardId)
+      // 3. DEDUCTION LEVEL (iterate until no new facts are discovered)
+      let hasChanges = true
+      const maxIterations = settingsStore.players.length * Cards.length
+      let iteration = 0
 
-        settingsStore.suggestions.forEach((s) => {
-          // 1. Filter: only if this player disproved
-          if (s.disprovedByPlayerId !== player.id) return
-          // 2. Filter: if we already know which card he showed - skip
-          if (s.shownCardId) return
+      while (hasChanges && iteration < maxIterations) {
+        hasChanges = false
+        iteration += 1
 
-          const involvedCardIds = [s.suspect.id, s.weapon.id, s.room.id]
+        settingsStore.players.forEach((player) => {
+          settingsStore.suggestions.forEach((s) => {
+            // 1. Filter: only if this player disproved
+            if (s.disprovedByPlayerId !== player.id) return
+            // 2. Filter: if we already know which card he showed - skip
+            if (s.shownCardId) return
 
-          // 3. Crytical check
-          // If we already know that he HAS one of these cards, deduction is impossible
-          const alreadyHasCard = involvedCardIds.some((cardId) => {
-            return getNotebookStatus(player.id, cardId) === CellStatus.HAS
-          })
+            const involvedCardIds = [s.suspect.id, s.weapon.id, s.room.id]
 
-          // If we already know that he HAS one of these cards, deduction is impossible
-          if (alreadyHasCard) return
+            // If we already know that he HAS one of these cards, deduction from this suggestion is done
+            const alreadyHasCard = involvedCardIds.some((cardId) => {
+              return getNotebookStatus(player.id, cardId) === CellStatus.HAS
+            })
+            if (alreadyHasCard) return
 
-          // 4. Now filter out impossible cards
-          const possibleCardsIds = involvedCardIds.filter((c) => !impossibleCardsIds.includes(c))
+            // Filter out impossible cards
+            const possibleCardsIds = involvedCardIds.filter((cardId) => {
+              return getNotebookStatus(player.id, cardId) !== CellStatus.HAS_NOT
+            })
 
-          // 5. If only one possible card remains - bingo!
-          if (possibleCardsIds.length === 1) {
+            // If only one possible card remains - deduce ownership
+            if (possibleCardsIds.length !== 1) return
+
             const deducedCardId = possibleCardsIds[0]
             if (!deducedCardId) return
 
-            // Set status for the player
-            setNotebookStatus(player.id, deducedCardId, CellStatus.HAS)
+            if (getNotebookStatus(player.id, deducedCardId) !== CellStatus.HAS) {
+              setNotebookStatus(player.id, deducedCardId, CellStatus.HAS)
+              hasChanges = true
+            }
 
-            // Update other players (they definitely don't have this card)
+            // If player has this card, everyone else has NOT
             settingsStore.players.forEach((otherPlayer) => {
-              if (otherPlayer.id !== player.id) {
+              if (otherPlayer.id === player.id) return
+
+              const currentStatus = getNotebookStatus(otherPlayer.id, deducedCardId)
+              if (currentStatus === CellStatus.HAS) return
+
+              if (currentStatus !== CellStatus.HAS_NOT) {
                 setNotebookStatus(otherPlayer.id, deducedCardId, CellStatus.HAS_NOT)
+                hasChanges = true
               }
             })
-          }
+          })
         })
-      })
+
+        if (applyEnvelopeCategoryDeduction()) {
+          hasChanges = true
+        }
+      }
 
       return notebook
     })

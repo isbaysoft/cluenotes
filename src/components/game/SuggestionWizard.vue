@@ -24,8 +24,10 @@ import WizardSlider from '@/components/game/suggestion-wizard/shared/WizardSlide
 import { modalService } from '@/services/modal/service'
 
 import { useSettingsStore } from '@/stores/settingsStore.js'
+import { useNotebookStore } from '@/stores/notebookStore'
 import { type Suggestion } from '@/models/suggestion'
 import { type Card } from '@/models/card'
+import { CellStatus } from '@/models/cellStatus'
 import { v4 as uuidv4 } from 'uuid'
 
 const props = defineProps<{
@@ -34,6 +36,7 @@ const props = defineProps<{
 const emit = defineEmits(['onClose'])
 
 const settingsStore = useSettingsStore()
+const notebookStore = useNotebookStore()
 const currentStep = ref(1)
 
 const buildSuggestion = (): Suggestion => {
@@ -153,6 +156,9 @@ const prevStepComponent = () => {
 }
 
 const finishTurn = async () => {
+  const canContinue = await confirmNobodyDisprovedConflict()
+  if (!canContinue) return
+
   if (isEditing.value) {
     if (isDirty.value) {
       const result = await update()
@@ -163,6 +169,43 @@ const finishTurn = async () => {
   }
 
   emit('onClose')
+}
+
+const getNobodyDisprovedConflicts = (suggestion: Suggestion) => {
+  if (suggestion.accusing || !suggestion.nobodyDisproved) return []
+
+  const cards = [suggestion.suspect, suggestion.weapon, suggestion.room]
+
+  return cards.flatMap((card) => {
+    const owner = settingsStore.players.find((player) => {
+      if (player.id === suggestion.askedByPlayerId) return false
+      return notebookStore.getStatus(player.id, card.id) === CellStatus.HAS
+    })
+
+    if (!owner) return []
+
+    return [{
+      cardName: card.name,
+      playerName: owner.name,
+    }]
+  })
+}
+
+const confirmNobodyDisprovedConflict = async () => {
+  const conflicts = getNobodyDisprovedConflicts(draftSuggestion.value)
+  if (!conflicts.length) return true
+
+  const facts = conflicts.map((entry) => `${entry.playerName} has ${entry.cardName}`).join('; ')
+  const confirmed = await modalService.open({
+    type: 'confirmation',
+    title: 'Rule Conflict',
+    body: `${facts}. Someone should have disproved this suggestion. Save as "Nobody disproved" anyway?`,
+    confirmButtonText: 'Save anyway',
+    cancelButtonText: 'Fix record',
+    canClose: true,
+  })
+
+  return confirmed === true
 }
 
 const save = async () => {

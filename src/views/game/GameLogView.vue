@@ -340,6 +340,15 @@ const cardName = (cardId: string): string => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+
+    &.showed {
+      border-color: transparent;
+
+      @include each-card-color using ($type, $color) {
+        background: $color;
+        color: $white;
+      }
+    }
   }
 }
 
