@@ -17,7 +17,7 @@
     "typecheck:strict": "vue-tsc --noEmit -p tsconfig.strict.json",
     "test:unit": "vitest run",
     "test:visual": "docker compose run --rm playwright npx playwright test",
-    "test:visual:update": "docker compose run --rm playwright npx playwright test --update-snapshots"
+    "test:visual:update": "docker compose run --rm playwright /bin/bash -lc \"npm ci && npx playwright test --update-snapshots\""
   },
   "dependencies": {
     "pinia": "^3.0.3",
