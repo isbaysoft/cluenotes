@@ -6,15 +6,15 @@
     <section class="term-section">
       <h2>1. General Information</h2>
       <p>
-        Welcome to <strong>Clue Notes Web</strong> (the "Website"). By accessing or using this
-        Website, you agree to be bound by these Terms. If you disagree with any part of these terms,
-        you may not use the Website.
+        Welcome to <strong>Clue Notes</strong> (the "Application"). By accessing or using this
+        Application, you agree to be bound by these Terms. If you disagree with any part of these
+        terms, you may not use the Application.
       </p>
     </section>
 
     <section class="term-section">
       <h2>2. Unofficial Fan Project (Copyright Notice)</h2>
-      <p>This Website is an <strong>unofficial fan tool</strong> created for personal use.</p>
+      <p>This Application is an <strong>unofficial fan tool</strong> created for personal use.</p>
       <ul>
         <li>
           <strong>Not Affiliated:</strong> This project is <strong>not</strong> affiliated with,
@@ -42,7 +42,7 @@
         </li>
         <li>
           <strong>Local Storage:</strong> All your game notes, settings, and history are stored
-          locally in your browser's memory (Local Storage / Cookies).
+          locally on your device (Local Storage / Cookies).
         </li>
         <li>
           <strong>Data Loss:</strong> If you clear your browser cache, use "Incognito/Private" mode,
@@ -53,32 +53,13 @@
     </section>
 
     <section class="term-section">
-      <h2>4. "Support me" (Donations)</h2>
-      <p>The Website includes a button to support the developer via voluntary donations.</p>
-      <ul>
-        <li>
-          <strong>Voluntary:</strong> Donations are completely optional and are not required to
-          access any features of the Website.
-        </li>
-        <li>
-          <strong>Non-Refundable:</strong> Any funds sent are considered a <strong>gift</strong> to
-          the developer and are non-refundable.
-        </li>
-        <li>
-          <strong>No Goods/Services:</strong> A donation does not entitle you to any special
-          features, advantages, or digital goods within the game.
-        </li>
-      </ul>
-    </section>
-
-    <section class="term-section">
-      <h2>5. Disclaimer of Warranties ("As Is")</h2>
+      <h2>4. Disclaimer of Warranties ("As Is")</h2>
       <p>
-        The Website is provided on an <strong>"AS IS"</strong> and
+        The Application is provided on an <strong>"AS IS"</strong> and
         <strong>"AS AVAILABLE"</strong> basis. The developer makes no warranties that:
       </p>
       <ul>
-        <li>The Website will be uninterrupted, timely, secure, or error-free.</li>
+        <li>The Application will be uninterrupted, timely, secure, or error-free.</li>
         <li>
           The results or logic helpers provided by the app will <strong>not</strong> be 100%
           accurate (it is a tool to assist, not replace, player judgment).
@@ -87,20 +68,20 @@
     </section>
 
     <section class="term-section">
-      <h2>6. Limitation of Liability</h2>
+      <h2>5. Limitation of Liability</h2>
       <p>
         To the fullest extent permitted by law, the developer shall not be liable for any direct,
         indirect, incidental, or consequential damages resulting from the use or inability to use
-        this Website.
+        this Application.
       </p>
     </section>
 
     <section class="term-section">
-      <h2>7. Contact</h2>
+      <h2>6. Contact</h2>
       <p>
         If you have any questions regarding these Terms, the Application, or if you have any
         suggestions or relevant inquiries, you can contact the developer at:
-        <a href="mailto:cluenotes.app@proton.me">cluenotes.app@proton.me</a>
+        <a href="mailto:cluenotes@icloud.com">cluenotes@icloud.com</a>
       </p>
     </section>
 
